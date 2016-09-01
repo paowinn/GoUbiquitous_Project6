@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">WatchFace</string>
+    <string name="my_digital_name">PAOLA ALVAREZ</string>
+    <string name="digital_am">AM</string>
+    <string name="digital_pm">PM</string>
+</resources>
