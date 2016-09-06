@@ -1,4 +1,4 @@
-package com.hp.alvarpao.watchface;
+package com.example.android.sunshine.app;
 
 /*
  * Copyright (C) 2014 The Android Open Source Project

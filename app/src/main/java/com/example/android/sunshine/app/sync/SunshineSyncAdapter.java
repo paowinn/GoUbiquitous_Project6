@@ -351,6 +351,9 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, description);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, weatherId);
 
+                if( i == 0 )
+                  Log.d("PAOLA" , "Max: " + high + " Low: " + low);
+
                 cVVector.add(weatherValues);
             }
 
