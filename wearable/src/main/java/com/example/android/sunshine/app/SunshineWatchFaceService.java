@@ -540,7 +540,14 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 if(!mHighTemp.equals("NA"))
                     degreeSymbol = "\u00b0";
 
-                canvas.drawText(mHighTemp + degreeSymbol, mXOffset+60, mYOffset + mLineHeight*3.75f, mHighTempPaint);
+                // Draw high temperature
+                canvas.drawText(mHighTemp + degreeSymbol, mXOffset+50, mYOffset + mLineHeight*3.75f, mHighTempPaint);
+
+                if(!mLowTemp.equals("NA"))
+                    degreeSymbol = "\u00b0";
+
+                // Draw low temperature
+                canvas.drawText(mLowTemp + degreeSymbol, mXOffset+120, mYOffset + mLineHeight*3.75f, mLowTempPaint);
             }
         }
 
