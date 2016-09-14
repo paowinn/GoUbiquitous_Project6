@@ -93,6 +93,10 @@ public final class SunshineWatchFaceUtil {
     public static final int COLOR_VALUE_DEFAULT_AND_AMBIENT_SECOND_DIGITS =
             parseColor(COLOR_NAME_DEFAULT_AND_AMBIENT_SECOND_DIGITS);
 
+    public static final String COLOR_NAME_DEFAULT_AND_AMBIENT_HIGH_TEMP_DIGITS = "White";
+    public static final int COLOR_VALUE_DEFAULT_AND_AMBIENT_HIGH_TEMP_DIGITS =
+            parseColor(COLOR_NAME_DEFAULT_AND_AMBIENT_HIGH_TEMP_DIGITS);
+
     /**
      * Callback interface to perform an action with the current config {@link DataMap} for
      * {@link SunshineWatchFaceService}.

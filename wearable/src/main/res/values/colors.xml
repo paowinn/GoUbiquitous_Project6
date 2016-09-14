@@ -7,4 +7,5 @@
     <color name="digital_date">#D9D9D9</color>
     <color name="digital_am_pm">#aaaaa0</color>
     <color name="digital_colons">#aaaaa0</color>
+    <color name="low_temp">#D9D9D9</color>
 </resources>

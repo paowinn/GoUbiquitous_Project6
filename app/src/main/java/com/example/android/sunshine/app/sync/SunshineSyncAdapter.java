@@ -24,6 +24,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.IntDef;
+import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.text.format.Time;
@@ -36,6 +37,13 @@ import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -49,10 +57,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
-public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
+public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
     public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
     public static final String ACTION_DATA_UPDATED =
             "com.example.android.sunshine.app.ACTION_DATA_UPDATED";
@@ -77,6 +86,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     private static final int INDEX_MIN_TEMP = 2;
     private static final int INDEX_SHORT_DESC = 3;
 
+    private GoogleApiClient mGoogleApiClient;
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({LOCATION_STATUS_OK, LOCATION_STATUS_SERVER_DOWN, LOCATION_STATUS_SERVER_INVALID,  LOCATION_STATUS_UNKNOWN, LOCATION_STATUS_INVALID})
     public @interface LocationStatus {}
@@ -87,8 +98,22 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int LOCATION_STATUS_UNKNOWN = 3;
     public static final int LOCATION_STATUS_INVALID = 4;
 
+    // Keys to DataItems for sending temperature info to wearable
+    public static final String HIGH_TEMP_KEY = "com.example.android.sunshine.app.sync.key.high";
+    public static final String LOW_TEMP_KEY = "com.example.android.sunshine.app.sync.key.low";
+    public static final String TIMESTAMP_KEY = "com.example.android.sunshine.app.sync.key.timestamp";
+
+
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
+
+        // Initialize GoogleApiClient to be able to send messages and DataItems to the connected
+        // wearable
+        mGoogleApiClient = new GoogleApiClient.Builder(getContext())
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(Wearable.API)
+                .build();
     }
 
     @Override
@@ -351,8 +376,37 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, description);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, weatherId);
 
-                if( i == 0 )
-                  Log.d("PAOLA" , "Max: " + high + " Low: " + low);
+
+                // We connect to the GoogleApiClient, send the data items and disconnect from the
+                // client. We don't need to remain connected, we only need to connect to when there
+                // is a change
+                if( i == 0 ) {
+
+                    // Just send today's weather info (i = 0)
+                    Log.d(LOG_TAG, "Max temperature to send: " + high + " Low temperature to send: " + low);
+                    mGoogleApiClient.connect();
+                    PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/temp");
+                    putDataMapReq.setUrgent();
+                    // We send also the timestamp otherwise the wearable will take a while to update,
+                    // since the timestamp is different every time, it will update right aways
+                    putDataMapReq.getDataMap().putLong(TIMESTAMP_KEY, new Date().getTime());
+                    putDataMapReq.getDataMap().putDouble(HIGH_TEMP_KEY, high);
+                    putDataMapReq.getDataMap().putDouble(LOW_TEMP_KEY, low);
+                    PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
+                    Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                        @Override
+                        public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
+                            if (!dataItemResult.getStatus().isSuccess())
+                                Log.v(LOG_TAG, "**Failed to send data to wearable**");
+
+                            else
+                                Log.v(LOG_TAG, "**Success sending data to wearable**");
+                        }
+                    });
+
+                    if (mGoogleApiClient != null && mGoogleApiClient.isConnected())
+                        mGoogleApiClient.disconnect();
+                }
 
                 cVVector.add(weatherValues);
             }
@@ -661,4 +715,27 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         spe.putInt(c.getString(R.string.pref_location_status_key), locationStatus);
         spe.commit();
     }
+
+    // Google Api callbacks
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
+            Log.d(LOG_TAG, "onConnected: " + connectionHint);
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int cause) {
+        if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
+            Log.d(LOG_TAG, "onConnectionSuspended: " + cause);
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult result) {
+        if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
+            Log.d(LOG_TAG, "onConnectionFailed: " + result);
+        }
+    }
+
 }
