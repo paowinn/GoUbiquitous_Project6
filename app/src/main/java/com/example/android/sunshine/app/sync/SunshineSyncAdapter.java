@@ -40,6 +40,7 @@ import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
@@ -50,6 +51,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -102,6 +104,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
     public static final String HIGH_TEMP_KEY = "com.example.android.sunshine.app.sync.key.high";
     public static final String LOW_TEMP_KEY = "com.example.android.sunshine.app.sync.key.low";
     public static final String TIMESTAMP_KEY = "com.example.android.sunshine.app.sync.key.timestamp";
+    public static final String ICON_KEY = "com.example.android.sunshine.app.sync.key.icon";
 
 
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
@@ -392,6 +395,15 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                     putDataMapReq.getDataMap().putLong(TIMESTAMP_KEY, new Date().getTime());
                     putDataMapReq.getDataMap().putDouble(HIGH_TEMP_KEY, high);
                     putDataMapReq.getDataMap().putDouble(LOW_TEMP_KEY, low);
+
+                    // Send weather icon as an asset
+                    Asset weatherIcon;
+                    Bitmap largeIcon = BitmapFactory.decodeResource(getContext().getResources(), Utility.getArtResourceForWeatherCondition(weatherId));
+                    weatherIcon = createWearableAssetFromBitmap(largeIcon);
+
+                    Log.d(LOG_TAG, "Sending weather icon to wearable: " + weatherIcon);
+                    putDataMapReq.getDataMap().putAsset(ICON_KEY, weatherIcon);
+
                     PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
                     Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                         @Override
@@ -455,6 +467,15 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         }
     }
 
+    private static Asset createWearableAssetFromBitmap(Bitmap bitmap){
+
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        // Compress to comply with the maximum of 100KB for data items and not impact user experience
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
+    }
+
+
     private void notifyWeather() {
         Context context = getContext();
         //checking the last update and notify if it' the first of the day
@@ -501,6 +522,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
 
                     // Retrieve the large icon
                     Bitmap largeIcon;
+
                     try {
                         largeIcon = Glide.with(context)
                                 .load(artUrl)
@@ -508,6 +530,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                                 .error(artResourceId)
                                 .fitCenter()
                                 .into(largeIconWidth, largeIconHeight).get();
+
                     } catch (InterruptedException | ExecutionException e) {
                         Log.e(LOG_TAG, "Error retrieving large icon from " + artUrl, e);
                         largeIcon = BitmapFactory.decodeResource(resources, artResourceId);

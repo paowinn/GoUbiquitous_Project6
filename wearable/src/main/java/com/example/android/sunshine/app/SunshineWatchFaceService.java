@@ -21,10 +21,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -37,6 +40,7 @@ import android.view.WindowInsets;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
@@ -45,6 +49,7 @@ import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -97,6 +102,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         // Keys to the DataItems sent by the mobile app
         private static final String HIGH_TEMP_KEY = "com.example.android.sunshine.app.sync.key.high";
         private static final String LOW_TEMP_KEY = "com.example.android.sunshine.app.sync.key.low";
+        public static final String ICON_KEY = "com.example.android.sunshine.app.sync.key.icon";
 
         /** How often {@link #mUpdateTimeHandler} ticks in milliseconds. */
         long mInteractiveUpdateRateMs = NORMAL_UPDATE_RATE_MS;
@@ -161,6 +167,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         // Initialize temperatures with "NA" (Not Available)
         String mHighTemp = "NA";
         String mLowTemp = "NA";
+        Bitmap mWeatherIcon;
 
         boolean mShouldDrawColons;
         float mXOffset;
@@ -533,6 +540,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 // Separation line between weather data and time/date
                 canvas.drawLine(mXOffset + 60, mYOffset + mLineHeight*2, mXOffset + 110, mYOffset + mLineHeight*2, mDatePaint);
 
+                // Draw weather icon
+                if(mWeatherIcon != null)
+                canvas.drawBitmap(mWeatherIcon, mXOffset - 20, mYOffset + mLineHeight*2.6f, null);
+
                 // Draw Temperature
                 String degreeSymbol = "";
 
@@ -590,14 +601,16 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                         // Update values to redraw UI
                         mHighTemp = String.valueOf((Double.valueOf(Math.round(dataMap.getDouble(HIGH_TEMP_KEY)))).intValue());
                         mLowTemp = String.valueOf((Double.valueOf(Math.round(dataMap.getDouble(LOW_TEMP_KEY)))).intValue());
+                        Asset asset  = dataMap.getAsset(ICON_KEY);
+                        Log.d(TAG, "Asset received: " + asset);
+                        new LoadBitmapFromAssetTask().execute(dataMap.getAsset(ICON_KEY));
+                        // Invalidate the UI for WatchFace when the AsyncTask is completed
 
-                        // Invalidate UI to redraw the WatchFace
-                        invalidate();
+
                     }
                 }
             }
         }
-
 
         // Google Api callbacks
         @Override
@@ -622,5 +635,59 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 Log.d(TAG, "onConnectionFailed: " + result);
             }
         }
+
+        private class LoadBitmapFromAssetTask extends AsyncTask<Asset, Void, Bitmap>{
+
+
+            protected Bitmap doInBackground(Asset... params){
+
+                Asset asset = params[0];
+
+                // Load the weather icon bitmap from the asset that the mobile app sent
+                if (asset == null) {
+                    throw new IllegalArgumentException("Asset must be non-null");
+                }
+
+                Log.d(TAG, "Before BLOCKING_CONNECT");
+                ConnectionResult result =
+                        mGoogleApiClient.blockingConnect(5000, TimeUnit.MILLISECONDS);
+
+                Log.d(TAG, "After BLOCKING_CONNECT");
+
+                if (!result.isSuccess()) {
+                    return null;
+                }
+
+                Log.d(TAG, "Before Converting to FD");
+                // Convert asset into a file descriptor and block until it's ready
+                InputStream assetInputStream = Wearable.DataApi.getFdForAsset(
+                        mGoogleApiClient, asset).await().getInputStream();
+
+                Log.d(TAG, "After Converting to FD");
+
+                //mGoogleApiClient.disconnect();
+
+
+                if (assetInputStream == null) {
+                    Log.w(TAG, "Requested an unknown asset.");
+                    return null;
+                }
+                // decode the stream into a bitmap
+                return BitmapFactory.decodeStream(assetInputStream);
+
+            }
+
+            protected void onPostExecute(Bitmap bitmap){
+
+                mWeatherIcon = Bitmap.createScaledBitmap(bitmap,
+                        (int) (bitmap.getWidth() * 0.45),
+                        (int) (bitmap.getHeight() * 0.45), true);
+                // Invalidate UI to redraw the WatchFace
+                invalidate();
+            }
+
+        }
     }
+
+
 }
