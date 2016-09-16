@@ -164,9 +164,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         Date mDate;
         SimpleDateFormat mDayOfWeekFormat;
         java.text.DateFormat mDateFormat;
-        // Initialize temperatures with "NA" (Not Available)
-        String mHighTemp = "NA";
-        String mLowTemp = "NA";
+        // Initialize temperatures
+        String mHighTemp = "";
+        String mLowTemp = "";
         Bitmap mWeatherIcon;
 
         boolean mShouldDrawColons;
@@ -555,13 +555,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 String degreeSymbol = "";
 
                 // No need to display the degree symbol when the temperature is not available
-                if(!mHighTemp.equals("NA"))
+                if(!mHighTemp.isEmpty())
                     degreeSymbol = "\u00b0";
 
                 // Draw high temperature
                 canvas.drawText(mHighTemp + degreeSymbol, mXOffset+50, mYOffset + mLineHeight*3.75f, mHighTempPaint);
 
-                if(!mLowTemp.equals("NA"))
+                if(!mLowTemp.isEmpty())
                     degreeSymbol = "\u00b0";
 
                 // Draw low temperature
