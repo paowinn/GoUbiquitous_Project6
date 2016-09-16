@@ -24,16 +24,11 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
-import android.support.design.widget.Snackbar;
-import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
-import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlacePicker;
-import com.google.android.gms.maps.model.LatLng;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings.
@@ -61,6 +56,7 @@ public class SettingsActivity extends PreferenceActivity
         bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_art_pack_key)));
 
 
+        /*
         // If we are using a PlacePicker location, we need to show attributions.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             mAttribution = new ImageView(this);
@@ -72,6 +68,7 @@ public class SettingsActivity extends PreferenceActivity
 
             setListFooter(mAttribution);
         }
+        */
     }
 
     // Registers a shared preference change listener that gets notified when preferences change
@@ -187,6 +184,7 @@ public class SettingsActivity extends PreferenceActivity
         return super.getParentActivityIntent().addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
     }
 
+    /*
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // Check to see if the result is from our Place Picker intent
@@ -240,5 +238,5 @@ public class SettingsActivity extends PreferenceActivity
         } else {
             super.onActivityResult(requestCode, resultCode, data);
         }
-    }
+    }*/
 }
