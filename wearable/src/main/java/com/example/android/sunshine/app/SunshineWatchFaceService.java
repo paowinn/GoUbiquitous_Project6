@@ -172,6 +172,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         boolean mShouldDrawColons;
         float mXOffset;
         float mYOffset;
+        float mXDayOffset;
+        float mXDateOffset;
         float mLineHeight;
         String mAmString;
         String mPmString;
@@ -205,7 +207,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                     .setShowSystemUiTime(false)
                     .build());
             Resources resources = SunshineWatchFaceService.this.getResources();
-            mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mLineHeight = resources.getDimension(R.dimen.digital_line_height);
             mAmString = resources.getString(R.string.digital_am);
             mPmString = resources.getString(R.string.digital_pm);
@@ -321,6 +322,12 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
             float amPmSize = resources.getDimension(isRound
                     ? R.dimen.digital_am_pm_size_round : R.dimen.digital_am_pm_size);
+            mYOffset = resources.getDimension(isRound
+                    ? R.dimen.digital_y_offset_round : R.dimen.digital_y_offset);
+            mXDayOffset = resources.getDimension(isRound
+                    ? R.dimen.digital_day_x_offset_round : R.dimen.digital_day_x_offset);
+            mXDateOffset = resources.getDimension(isRound
+                    ? R.dimen.digital_date_x_offset_round : R.dimen.digital_date_x_offset);
 
             mDatePaint.setTextSize(resources.getDimension(R.dimen.digital_date_text_size));
             mHourPaint.setTextSize(textSize);
@@ -531,11 +538,11 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 // Draw Day of week
                 canvas.drawText(
                         mDayOfWeekFormat.format(mDate),
-                        mXOffset-40, mYOffset + mLineHeight, mDatePaint);
+                        mXOffset-mXDayOffset, mYOffset + mLineHeight, mDatePaint);
                 // Draw Date
                 canvas.drawText(
                         mDateFormat.format(mDate),
-                        mXOffset+35, mYOffset + mLineHeight, mDatePaint);
+                        mXOffset+mXDateOffset, mYOffset + mLineHeight, mDatePaint);
 
                 // Separation line between weather data and time/date
                 canvas.drawLine(mXOffset + 60, mYOffset + mLineHeight*2, mXOffset + 110, mYOffset + mLineHeight*2, mDatePaint);
