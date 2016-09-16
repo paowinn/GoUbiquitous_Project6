@@ -380,45 +380,9 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, weatherId);
 
 
-                // We connect to the GoogleApiClient, send the data items and disconnect from the
-                // client. We don't need to remain connected, we only need to connect to when there
-                // is a change
-                if( i == 0 ) {
-
-                    // Just send today's weather info (i = 0)
-                    Log.d(LOG_TAG, "Max temperature to send: " + high + " Low temperature to send: " + low);
-                    mGoogleApiClient.connect();
-                    PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/temp");
-                    putDataMapReq.setUrgent();
-                    // We send also the timestamp otherwise the wearable will take a while to update,
-                    // since the timestamp is different every time, it will update right aways
-                    putDataMapReq.getDataMap().putLong(TIMESTAMP_KEY, new Date().getTime());
-                    putDataMapReq.getDataMap().putDouble(HIGH_TEMP_KEY, high);
-                    putDataMapReq.getDataMap().putDouble(LOW_TEMP_KEY, low);
-
-                    // Send weather icon as an asset
-                    Asset weatherIcon;
-                    Bitmap largeIcon = BitmapFactory.decodeResource(getContext().getResources(), Utility.getArtResourceForWeatherCondition(weatherId));
-                    weatherIcon = createWearableAssetFromBitmap(largeIcon);
-
-                    Log.d(LOG_TAG, "Sending weather icon to wearable: " + weatherIcon);
-                    putDataMapReq.getDataMap().putAsset(ICON_KEY, weatherIcon);
-
-                    PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
-                    Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-                        @Override
-                        public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
-                            if (!dataItemResult.getStatus().isSuccess())
-                                Log.v(LOG_TAG, "**Failed to send data to wearable**");
-
-                            else
-                                Log.v(LOG_TAG, "**Success sending data to wearable**");
-                        }
-                    });
-
-                    if (mGoogleApiClient != null && mGoogleApiClient.isConnected())
-                        mGoogleApiClient.disconnect();
-                }
+                // Just send today's weather info (when i = 0)
+                if( i == 0 )
+                    updateWearable(high, low, weatherId);
 
                 cVVector.add(weatherValues);
             }
@@ -466,15 +430,6 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                     .setClass(context, WeatherMuzeiSource.class));
         }
     }
-
-    private static Asset createWearableAssetFromBitmap(Bitmap bitmap){
-
-        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        // Compress to comply with the maximum of 100KB for data items and not impact user experience
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
-        return Asset.createFromBytes(byteStream.toByteArray());
-    }
-
 
     private void notifyWeather() {
         Context context = getContext();
@@ -759,6 +714,54 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
             Log.d(LOG_TAG, "onConnectionFailed: " + result);
         }
+    }
+
+    private void updateWearable(double high, double low, int weatherId){
+
+        // We only need to connect to the GoogleApiClient, send the data items and disconnect from the
+        // client. We don't need to remain connected, we only need to connect to when there
+        // is a change
+
+        Log.d(LOG_TAG, "Max temperature to send: " + high + " Low temperature to send: " + low);
+        mGoogleApiClient.connect();
+        PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/temp");
+        putDataMapReq.setUrgent();
+        // We send also the timestamp otherwise the wearable will take a while to update,
+        // since the timestamp is different every time, it will update right away
+        putDataMapReq.getDataMap().putLong(TIMESTAMP_KEY, new Date().getTime());
+        putDataMapReq.getDataMap().putDouble(HIGH_TEMP_KEY, high);
+        putDataMapReq.getDataMap().putDouble(LOW_TEMP_KEY, low);
+
+        // Send weather icon as an asset
+        Asset weatherIcon;
+        Bitmap bitmap = BitmapFactory.decodeResource(getContext().getResources(), Utility.getArtResourceForWeatherCondition(weatherId));
+        weatherIcon = createWearableAssetFromBitmap(bitmap);
+
+        Log.d(LOG_TAG, "Sending weather icon to wearable");
+        putDataMapReq.getDataMap().putAsset(ICON_KEY, weatherIcon);
+
+        PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
+        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+            @Override
+            public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
+                if (!dataItemResult.getStatus().isSuccess())
+                    Log.v(LOG_TAG, "**Failed to send data to wearable**");
+
+                else
+                    Log.v(LOG_TAG, "**Success sending data to wearable**");
+            }
+        });
+
+        if (mGoogleApiClient != null && mGoogleApiClient.isConnected())
+            mGoogleApiClient.disconnect();
+    }
+
+    private static Asset createWearableAssetFromBitmap(Bitmap bitmap){
+
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        // Compress to comply with the maximum of 100KB for data items and not impact user experience
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
     }
 
 }
