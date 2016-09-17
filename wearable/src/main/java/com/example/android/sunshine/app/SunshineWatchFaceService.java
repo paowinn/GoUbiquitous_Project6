@@ -25,6 +25,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -171,6 +173,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         String mLowTemp = "";
 
         Bitmap mWeatherIcon;
+        Bitmap mGrayWeatherBitmap;
 
         boolean mShouldDrawColons;
         float mXOffset;
@@ -189,6 +192,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
          * disable anti-aliasing in ambient mode.
          */
         boolean mLowBitAmbient;
+        boolean mBurnInProtection;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -333,13 +337,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         public void onPropertiesChanged(Bundle properties) {
             super.onPropertiesChanged(properties);
 
-            boolean burnInProtection = properties.getBoolean(PROPERTY_BURN_IN_PROTECTION, false);
-            mHourPaint.setTypeface(burnInProtection ? NORMAL_TYPEFACE : BOLD_TYPEFACE);
+            mBurnInProtection = properties.getBoolean(PROPERTY_BURN_IN_PROTECTION, false);
+            mHourPaint.setTypeface(mBurnInProtection ? NORMAL_TYPEFACE : BOLD_TYPEFACE);
 
             mLowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
 
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onPropertiesChanged: burn-in protection = " + burnInProtection
+                Log.d(TAG, "onPropertiesChanged: burn-in protection = " + mBurnInProtection
                         + ", low-bit ambient = " + mLowBitAmbient);
             }
         }
@@ -376,11 +380,30 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 mLowTempPaint.setAntiAlias(antiAlias);
             }
 
+            //Create a gray version of the weather icon to display in ambient mode
+            initGrayWeatherBitmap();
             invalidate();
 
             // Whether the timer should be running depends on whether we're in ambient mode (as well
             // as whether we're visible), so we may need to start or stop the timer.
             updateTimer();
+        }
+
+        private void initGrayWeatherBitmap() {
+
+            if(mWeatherIcon != null) {
+                mGrayWeatherBitmap = Bitmap.createBitmap(
+                        mWeatherIcon.getWidth(),
+                        mWeatherIcon.getHeight(),
+                        Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(mGrayWeatherBitmap);
+                Paint grayPaint = new Paint();
+                ColorMatrix colorMatrix = new ColorMatrix();
+                colorMatrix.setSaturation(0);
+                ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
+                grayPaint.setColorFilter(filter);
+                canvas.drawBitmap(mWeatherIcon, 0, 0, grayPaint);
+            }
         }
 
         private void adjustPaintColorToCurrentMode(Paint paint, int interactiveColor,
@@ -494,8 +517,16 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 canvas.drawLine(mXOffset + 60, mYOffset + mLineHeight*2, mXOffset + 110, mYOffset + mLineHeight*2, mDatePaint);
 
                 // Draw weather icon
-                if(mWeatherIcon != null)
-                canvas.drawBitmap(mWeatherIcon, mXOffset - 20, mYOffset + mLineHeight*2.6f, null);
+                if(mWeatherIcon != null){
+
+                    if (isInAmbientMode() && (mLowBitAmbient || mBurnInProtection)) {
+                        canvas.drawColor(Color.BLACK);
+                    } else if (isInAmbientMode()) {
+                        canvas.drawBitmap(mGrayWeatherBitmap, mXOffset - 20, mYOffset + mLineHeight*2.6f, null);
+                    } else {
+                        canvas.drawBitmap(mWeatherIcon, mXOffset - 20, mYOffset + mLineHeight*2.6f, null);
+                    }
+                }
 
                 // Draw Temperature
                 String degreeSymbol = "";
