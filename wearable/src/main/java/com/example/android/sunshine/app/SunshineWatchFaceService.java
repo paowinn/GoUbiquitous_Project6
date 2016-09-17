@@ -520,7 +520,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 if(mWeatherIcon != null){
 
                     if (isInAmbientMode() && (mLowBitAmbient || mBurnInProtection)) {
-                        canvas.drawColor(Color.BLACK);
+                        // Don't display the icon
                     } else if (isInAmbientMode()) {
                         canvas.drawBitmap(mGrayWeatherBitmap, mXOffset - 20, mYOffset + mLineHeight*2.6f, null);
                     } else {
