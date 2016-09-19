@@ -11,8 +11,8 @@
     <dimen name="digital_am_pm_size_round">30dp</dimen>
     <dimen name="digital_date_text_size">20dp</dimen>
     <dimen name="temp_text_size">28dp</dimen>
-    <dimen name="digital_day_x_offset_round">20dp</dimen>
-    <dimen name="digital_day_x_offset">25dp</dimen>
-    <dimen name="digital_date_x_offset_round">15dp</dimen>
-    <dimen name="digital_date_x_offset">10dp</dimen>
+    <dimen name="digital_day_x_offset_round">27dp</dimen>
+    <dimen name="digital_day_x_offset">30dp</dimen>
+    <dimen name="digital_date_x_offset_round">22dp</dimen>
+    <dimen name="digital_date_x_offset">19dp</dimen>
 </resources>
